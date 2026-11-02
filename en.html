@@ -309,6 +309,30 @@
     .hero-glow { display:none; }
     body { background:#fff; }
   }
+
+  /* ===== 马上分享按钮 ===== */
+  .share-btn {
+    display:flex; align-items:center; justify-content:center; gap:10px;
+    width:100%; margin:26px 0 8px; padding:17px 24px;
+    font-size:17px; font-weight:800; letter-spacing:.3px;
+    color:#3A2A10; border:none; border-radius:16px; cursor:pointer;
+    background:linear-gradient(135deg,#FFD98A,#E8A23A,#D98C1F);
+    box-shadow:0 12px 30px rgba(232,162,58,.32);
+    transition:transform .18s ease, box-shadow .18s ease;
+    -webkit-tap-highlight-color:transparent;
+    font-family:inherit;
+  }
+  .share-btn:hover { transform:translateY(-1px); box-shadow:0 16px 38px rgba(232,162,58,.38); }
+  .share-btn:active { transform:translateY(0); box-shadow:0 8px 20px rgba(232,162,58,.28); }
+  .share-btn .ico { font-size:20px; line-height:1; }
+
+  .inapp-tip {
+    display:none; margin:10px 0 0; padding:12px 16px;
+    font-size:13px; line-height:1.6; border-radius:12px;
+    color:var(--accent-dark); background:var(--accent-soft);
+    border:1px solid rgba(232,162,58,.28);
+  }
+  .inapp-tip.show { display:block; }
 </style>
 </head>
 <body>
@@ -342,6 +366,15 @@
       without further notice. Join early if you'd like one.
     </div>
   </div>
+  <!-- Share now -->
+  <button class="share-btn" id="shareBtn" type="button">
+    <span class="ico">📤</span>
+    <span>Share Now</span>
+  </button>
+  <div class="inapp-tip" id="inappTip">
+    Open this page inside PinNote to generate and share the poster.
+  </div>
+
 
   <h2>How to join</h2>
 
@@ -434,5 +467,45 @@
 
 </div>
 
+
+<script>
+(function () {
+  var btn = document.getElementById('shareBtn');
+  var tip = document.getElementById('inappTip');
+  if (!btn) return;
+
+  // 判断是否在钉字条 App 内打开。
+  // App 内用的是 WKWebView，UA 里带 "StandbyNote"（App 的 CFBundleName），
+  // 普通 Safari / 微信 / Chrome 都没有。
+  var ua = navigator.userAgent || '';
+  var inApp = /StandbyNote|PinNote/i.test(ua);
+
+  btn.addEventListener('click', function () {
+    if (inApp) {
+      // 在 App 内：跳自定义 scheme，WKWebView 的
+      // decidePolicyFor 会截住这个请求，换成原生分享面板
+      window.location.href = 'pinnote://share';
+      return;
+    }
+
+    // 在外部浏览器：自定义 scheme 会被系统拦下（弹「无法打开页面」），
+    // 所以先尝试唤起 App，1 秒后如果页面还在前台说明没唤起成功，
+    // 再显示引导文案。
+    var hidden = false;
+    var onHide = function () { hidden = true; };
+    document.addEventListener('visibilitychange', onHide);
+
+    window.location.href = 'pinnote://share';
+
+    setTimeout(function () {
+      document.removeEventListener('visibilitychange', onHide);
+      if (hidden || document.hidden) return;
+      tip.classList.add('show');
+      tip.textContent = 'Open PinNote → Settings → Share & Earn to generate and share the poster.';
+      tip.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 1000);
+  });
+})();
+</script>
 </body>
 </html>
